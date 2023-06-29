@@ -43,11 +43,11 @@ module.exports = {
       },
       {
         test: /\.(png|jpg|jpeg|svg|gif)$/i,
-        use: ['file-loader'],
+        type: 'asset/resource',
       },
       {
         test: /\.(ttf|otf|eot|woff|woff2)$/i,
-        use: ['file-loader'],
+        type: 'asset/resource',
       },
     ],
   },
