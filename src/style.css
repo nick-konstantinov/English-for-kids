@@ -17,6 +17,10 @@ body {
     font-family: "Josefin", sans-serif;
 }
 
+.noscroll {
+    overflow: hidden;
+}
+
 h1, h2, h3, h4, h5, h6 {
     margin: 0;
     padding: 0;
@@ -38,10 +42,17 @@ p {
 /* Header */
 
 .header {
+    position: relative;
     width: 100%;
     padding: 1.5rem 0;
     background: #ddd6f3;
     box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+
+    z-index: 2;
+}
+
+.header__nav {
+    position: relative;
 }
 
 .header__inner {
@@ -76,6 +87,8 @@ p {
 /* Burger */
 
 .burger-btn {
+    position: relative;
+    z-index: 3;
     display: block;
     font-size: 0;
     width: 3rem;
@@ -85,6 +98,8 @@ p {
     background: none;
     cursor: pointer;
     border: 0;
+
+    transition: transform 0.2s;
 }
 
 .burger-btn__item {
@@ -115,8 +130,66 @@ p {
     top: 1rem;
 }
 
-.burger-btn:hover .burger-btn__item {
-    transform: rotate(-10deg);
+.burger-btn_active {
+    transform: rotate(90deg);
+}
+
+.burger-menu {
+    position: absolute;
+    top: 7.5rem;
+    left: -4rem;
+    z-index: 1;
+
+    width: 30rem;
+    height: calc(100vh - 7.6rem);
+    padding: 2rem;
+
+    opacity: 0;
+    background: #ddd6f3;
+    box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22), inset 0 -5px 5px -5px #333;
+
+    transition: transform 0.2s, opacity 0.8s;
+    transform: translateY(-120%);
+}
+
+.burger-menu_open {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.burger-menu ul li {
+    padding: 0.8rem 0;
+    font-size: 3rem;
+    list-style: none;
+}
+
+.burger-menu ul li a {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    text-decoration: none;
+    color: #000;
+}
+
+.burger-menu ul li a::before {
+    content: "";
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    z-index: 1;
+
+    display: block;
+    width: 0;
+    height: 1.5px;
+    background-color: #000;
+    opacity: 0.7;
+
+    transition: all 0.3s;
+
+}
+
+.burger-menu ul li a:hover::before {
+    width: 100%;
 }
 
 /* Switch */
@@ -186,7 +259,7 @@ p {
     position: absolute;
     top: 110%;
     left: 130%;
-    margin-top: 1px;
+    margin-top: 2px;
     transform: translateY(-50%);
     color: #000;
     font-weight: 400;
