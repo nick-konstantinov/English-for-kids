@@ -409,14 +409,6 @@ path {
     transform: rotateY(180deg);
 }
 
-/* .card__word:hover .card__front {
-    transform: rotateY(180deg);
-}
-
-.card__word:hover .card__back {
-    transform: rotateY(360deg);
-} */
-
 .card__rotate-btn {
     position: absolute;
     bottom: 1.1rem;
@@ -425,8 +417,13 @@ path {
     width: 3rem;
     height: 3rem;
     cursor: inherit;
+
+    transition: transform ease 0.2s;
 }
 
+.card__rotate-btn:hover {
+    transform: scale(1.2);
+}
 
 /* Mask */
 

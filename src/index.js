@@ -52,20 +52,41 @@ window.addEventListener('resize', () => {
   burgerMenu.style.left = `${coordsBurgerBtn.left - 20}px`;
 });
 
-// Add listener for burger button to open&close burger-menu
-burgerBtn.addEventListener('click', () => {
+// Function open&close burger-menu
+function openCloseBurgerMenu() {
   burgerBtn.classList.toggle('burger-btn_active');
   burgerMenu.classList.toggle('burger-menu_open');
   body.classList.toggle('noscroll');
   mask.hidden = !mask.hidden;
+}
+
+// Add listener for burger button to open&close burger-menu
+burgerBtn.addEventListener('click', () => {
+  openCloseBurgerMenu();
+});
+
+// Add listener for burger-menu to open selected category
+burgerInner.addEventListener('click', function(event) {
+  const link = event.target.closest('a');
+
+  if (!link) return;
+
+  if (link.classList.contains('burger-menu__main-link')) {
+    location.reload();
+    return;
+  }
+
+  const linkDataCategory = link.dataset.category;
+
+  cardsInner.replaceChildren();
+  addWordCards(linkDataCategory);
+  currentCategory = linkDataCategory;
+  openCloseBurgerMenu();
 });
 
 // Add listener for mask to close burger-menu
 mask.addEventListener('click', () => {
-  burgerBtn.classList.toggle('burger-btn_active');
-  burgerMenu.classList.toggle('burger-menu_open');
-  body.classList.toggle('noscroll');
-  mask.hidden = !mask.hidden;
+  openCloseBurgerMenu();
 });
 
 // Add listener for logo if push reload page
@@ -76,6 +97,8 @@ logo.addEventListener('click', () => {
 });
 
 // ----- Categories -----
+
+let currentCategory = null;
 
 // Set categories name & image source
 const categoriesInfo = [];
@@ -136,6 +159,7 @@ cardsInner.addEventListener('click', function(event) {
 
   cardsInner.replaceChildren();
   addWordCards(card.dataset.name);
+  currentCategory = card.dataset.name;
 });
 
 // Add listener for rotate button to rotate word card
@@ -151,9 +175,23 @@ cardsInner.addEventListener('click', function(event) {
   cardFront.style.transform = 'rotateY(180deg)';
   cardBack.style.transform = 'rotateY(360deg)';
 
-  cardBack.addEventListener('mouseleave', () => {
+  cardWord.addEventListener('mouseleave', () => {
     cardFront.style.transform = 'rotateY(0deg)';
     cardBack.style.transform = 'rotateY(180deg)';
   });
+});
 
+// Add listener for word card to play audio
+cardsInner.addEventListener('click', function(event) {
+  const cardWord = event.target.closest('.card__word');
+
+  if (!cardWord) return;
+
+  wordCollection.get(currentCategory).forEach((item) => {
+    if(item.word === cardWord.dataset.name) {
+      const audio = new Audio(item.audioSrc);
+      console.log(item.audioSrc);
+      audio.play();
+    }
+  });
 });
