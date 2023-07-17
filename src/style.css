@@ -377,7 +377,7 @@ path {
     perspective: 500px;
 
     will-change: transform;
-    transition: transform ease 0.2s, box-shadow ease 0.2s;
+    transition: transform ease 0.2s;
 }
 
 .card__title {
@@ -397,7 +397,6 @@ path {
     padding: inherit;
     background: linear-gradient(#eeedf2, #e4e4e3);
     border-radius: inherit;
-    cursor: pointer;
     backface-visibility: hidden;
 
     will-change: transform;

@@ -175,17 +175,23 @@ cardsInner.addEventListener('click', function(event) {
   cardFront.style.transform = 'rotateY(180deg)';
   cardBack.style.transform = 'rotateY(360deg)';
 
+  cardWord.style.cursor = 'default';
+
   cardWord.addEventListener('mouseleave', () => {
     cardFront.style.transform = 'rotateY(0deg)';
     cardBack.style.transform = 'rotateY(180deg)';
+
+    cardWord.style.cursor = 'pointer';
   });
 });
 
 // Add listener for word card to play audio
 cardsInner.addEventListener('click', function(event) {
+  const cardFront = event.target.closest('.card__front');
   const cardWord = event.target.closest('.card__word');
+  const rotateBtn = event.target.closest('.card__rotate-btn');
 
-  if (!cardWord) return;
+  if (!cardFront || rotateBtn) return;
 
   wordCollection.get(currentCategory).forEach((item) => {
     if(item.word === cardWord.dataset.name) {
