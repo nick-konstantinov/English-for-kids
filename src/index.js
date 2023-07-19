@@ -5,6 +5,9 @@ import CardWord from './assets/module/CardWord';
 import { createElem } from './assets/js/helpers';
 import { getCoords } from './assets/js/helpers';
 
+// Global variable name mode
+let isTrainMode = true;
+
 // ----- Burger-menu -----
 const { body } = document;
 
@@ -46,10 +49,12 @@ const burgerBtn = document.querySelector('#burger-btn');
 let coordsBurgerBtn = getCoords(burgerBtn);
 burgerMenu.style.left = `${coordsBurgerBtn.left - 20}px`;
 
-// Add listener for window to correct position burger-menu
+// Add listener for window to correct position burger-menu & play button
 window.addEventListener('resize', () => {
   coordsBurgerBtn = getCoords(burgerBtn);
   burgerMenu.style.left = `${coordsBurgerBtn.left - 20}px`;
+
+  correctPositionPlayBtn();
 });
 
 // Function open&close burger-menu
@@ -63,7 +68,23 @@ function openCloseBurgerMenu() {
 // Add listener for burger button to open&close burger-menu
 burgerBtn.addEventListener('click', () => {
   openCloseBurgerMenu();
+  correctPositionPlayBtn();
 });
+
+// Global variable current active link
+let previousActiveLink = document.querySelector('.burger__link_active');
+
+// Function remove active style svg
+function removeActiveStyleSvg() {
+  const svg = document.querySelector('.burger-menu__main-img').contentDocument.documentElement;
+  const homeImg = svg.querySelector('#homeImg');
+
+  previousActiveLink.classList.remove('burger__link_active');
+  homeImg.style.strokeWidth = 1 + 'px';
+}
+
+// Create play button
+const playBtn = createElem(body, 'button', 'Start', 'play__btn');
 
 // Add listener for burger-menu to open selected category
 burgerInner.addEventListener('click', function(event) {
@@ -76,12 +97,27 @@ burgerInner.addEventListener('click', function(event) {
     return;
   }
 
+  if (playListCards) {
+    gameIsOver('lose');
+    openCloseBurgerMenu();
+  } else {
+    removeActiveStyleSvg();
+
   const linkDataCategory = link.dataset.category;
 
   cardsInner.replaceChildren();
   addWordCards(linkDataCategory);
   currentCategory = linkDataCategory;
+
+  link.classList.add('burger__link_active');
+  previousActiveLink = link;
   openCloseBurgerMenu();
+
+  managePlayMode();
+
+  setPlayBtnDefaultStyles();
+  correctPositionPlayBtn();
+  }
 });
 
 // Add listener for mask to close burger-menu
@@ -137,7 +173,7 @@ function addWordCards(key) {
     const cardWordFrontTitle = item.word;
     const cardWordBackTitle = item.translation;
 
-    cardsInner.append(wordCard.createCard(cardWordSrc, cardWordAlt, 'card__img', 'card__title', cardWordFrontTitle, cardWordBackTitle, 'card__front', 'card__back'));
+    cardsInner.append(wordCard.createCard(cardWordSrc, cardWordAlt, 'card__word-img', 'card__word-title', cardWordFrontTitle, cardWordBackTitle, 'card__front', 'card__back'));
   });
 }
 
@@ -152,6 +188,10 @@ for (let i = 0; i < cards.length - 1; i++) {
 // Do:
 // Remove categories cards
 // Add word cards to page
+// Remove active style home svg
+// Change active link into burher-menu
+// Add play button
+// Change style depending on mode
 cardsInner.addEventListener('click', function(event) {
   const card = event.target.closest('.card');
 
@@ -160,6 +200,13 @@ cardsInner.addEventListener('click', function(event) {
   cardsInner.replaceChildren();
   addWordCards(card.dataset.name);
   currentCategory = card.dataset.name;
+
+  removeActiveStyleSvg();
+  const currentLink = document.querySelector('[data-category="'+currentCategory+'"]');
+  currentLink.classList.add('burger__link_active');
+  previousActiveLink = currentLink;
+
+  managePlayMode();
 });
 
 // Add listener for rotate button to rotate word card
@@ -191,13 +238,261 @@ cardsInner.addEventListener('click', function(event) {
   const cardWord = event.target.closest('.card__word');
   const rotateBtn = event.target.closest('.card__rotate-btn');
 
-  if (!cardFront || rotateBtn) return;
+  if (!cardFront || rotateBtn || !isTrainMode) return;
 
   wordCollection.get(currentCategory).forEach((item) => {
     if(item.word === cardWord.dataset.name) {
       const audio = new Audio(item.audioSrc);
-      console.log(item.audioSrc);
       audio.play();
     }
   });
 });
+
+// ----- Play mode -----
+
+// Global variable switch button
+const switchBtn = document.querySelector('.switch-btn input');
+
+// Function change styles word cards depending on mode
+function changeStylesWordCardsDependingOnMode() {
+  const cardTitles = document.querySelectorAll('.card__word-title');
+  const cardRotateBtns = document.querySelectorAll('.card__rotate-btn');
+  const cardImages = document.querySelectorAll('.card__word-img');
+
+  if (switchBtn.checked) {
+    isTrainMode = false;
+
+    cardTitles.forEach((item) => {
+      item.style.display = 'none';
+    });
+
+    cardRotateBtns.forEach((item) => {
+      item.style.display = 'none';
+    });
+
+    cardImages.forEach((item) => {
+      item.style.height = 100 + '%';
+    });
+
+  } else {
+    isTrainMode = true;
+
+    cardTitles.forEach((item) => {
+      item.style.display = 'block';
+    });
+
+    cardRotateBtns.forEach((item) => {
+      item.style.display = 'block';
+    });
+
+    cardImages.forEach((item) => {
+      item.style.height = 130 + 'px';
+    });
+
+  }
+}
+
+// Function change styles play button depending on mode
+function changeStylesPlayBtnDependingOnMode() {
+  if (switchBtn.checked) {
+    playBtn.style.display = 'inline-block';
+    correctPositionPlayBtn();
+  } else {
+    playBtn.style.display = 'none';
+  }
+}
+
+// Function correct position play button
+function correctPositionPlayBtn() {
+  if (switchBtn.checked) {
+    const widthScreen = document.documentElement.scrollWidth;
+    const playBtnWidth = playBtn.offsetWidth;
+
+    playBtn.style.top = 10 + 'rem';
+    playBtn.style.left = widthScreen / 2 - playBtnWidth /2 + 'px';
+  }
+
+}
+
+// Function change styles play button to repeat button when click
+function changeStylesPlayBtnToRepeatBtn() {
+  if (!playBtn.classList.contains('play__btn_repeat')) {
+    const repeatImg = createElem(playBtn, 'img', '', 'play__btn-img_repeat');
+    repeatImg.src = 'img/repeat.svg';
+    repeatImg.alt = 'repeat word';
+
+    playBtn.classList.add('hover');
+    playBtn.classList.add('play__btn_repeat');
+  }
+}
+
+// Function set play button to default styles
+function setPlayBtnDefaultStyles() {
+  if (switchBtn.checked) {
+    const repeatImg = document.querySelector('.play__btn-img_repeat');
+    if (repeatImg) {
+      playBtn.removeChild(repeatImg);
+    }
+
+    playBtn.classList.remove('play__btn_repeat');
+    playBtn.classList.remove('hover');
+  }
+}
+
+
+// Function manage play mode
+function managePlayMode() {
+  changeStylesWordCardsDependingOnMode();
+  changeStylesPlayBtnDependingOnMode();
+
+  playBtn.addEventListener('click', () => {
+    changeStylesPlayBtnToRepeatBtn();
+    correctPositionPlayBtn();
+
+    playCurrentWordAudio();
+  });
+}
+
+// Add listener for switch mode to change mode
+switchBtn.addEventListener('change', () => {
+
+  if (cardsInner.children[0].classList.contains('card')) return;
+
+  managePlayMode();
+  setPlayBtnDefaultStyles();
+  correctPositionPlayBtn();
+
+  if (playListCards) {
+    gameIsOver('lose');
+  }
+});
+
+let playListCards = null;
+let currentPlayCardIndex = 0;
+let errorsCount = 0;
+
+// Function for reset global variable's property in play mode
+function resetGlobalPropertyForPlayMode() {
+  playListCards = null;
+  currentPlayCardIndex = 0;
+  errorsCount = 0;
+}
+
+// Function rotate play repeat button in click at play button
+function rotateRepeatBtn() {
+  const playBtnImg = document.querySelector('.play__btn-img_repeat');
+  let current = getComputedStyle(playBtnImg).transform;
+  if (current == 'none') current = '';
+  playBtnImg.style.transform = current + 'rotate(270deg)';
+}
+
+// Function play current word audio
+function playCurrentWordAudio() {
+  const currentPlayCard = playListCards[currentPlayCardIndex];
+  const audio = new Audio(currentPlayCard.audioSrc);
+  audio.play();
+}
+
+// Function add to page stars & play audio
+function createStars(result, starBox, audio) {
+  const star = createElem(starBox, 'img', '', 'play__star-img');
+
+  if (result === 'correct') {
+    star.src = 'img/star-win.svg';
+    star.alt = 'star win';
+
+    audio.src = 'audio/correct.mp3';
+  } else {
+    star.src = 'img/star.svg';
+    star.alt = 'star lose';
+
+    audio.src = 'audio/error.mp3';
+  }
+
+  audio.play();
+
+  if (starBox.scrollHeight > starBox.offsetHeight) {
+    starBox.removeChild(starBox.childNodes[0]);
+  }
+}
+
+// Function game is over
+function gameIsOver(result) {
+  cardsInner.replaceChildren();
+  cardsInner.style.flexDirection = 'column';
+  playBtn.remove();
+
+  const audio = new Audio;
+  const gameImg = createElem(cardsInner, 'img', '', 'play__img');
+  const gameText = createElem(cardsInner, 'h3', `Number of mistakes: ${errorsCount}`, 'play__losing-count');
+
+  if (result === 'lose') {
+    audio.src = 'audio/failure.mp3';
+    audio.play();
+
+    gameText.innerHTML = `Number of mistakes: ${errorsCount}`;
+
+    gameImg.src = 'img/sad.gif';
+    gameImg.alt = 'you lose';
+  } else {
+    audio.src = 'audio/success.mp3';
+    audio.play();
+
+    gameText.innerHTML = `Great job!`;
+
+    gameImg.src = 'img/win.gif';
+    gameImg.alt = 'you win';
+  }
+
+  resetGlobalPropertyForPlayMode();
+
+  setTimeout(() => {
+    location.reload();
+  }, 4000);
+}
+
+// Add listener for play button to start game
+playBtn.addEventListener('click', () => {
+  if (!playListCards) {
+    playListCards = wordCollection.get(currentCategory).sort(() => Math.random() - 0.5);
+  }
+  let currentPlayCard = playListCards[currentPlayCardIndex];
+  let audio = new Audio(currentPlayCard.audioSrc);
+
+  const starBox = createElem(cardsInner, 'div', '', 'play__star-box');
+
+  cardsInner.addEventListener('click', function(event) {
+    const cardWord = event.target.closest('.card__word');
+
+    if (!cardWord) return;
+
+    if (cardWord.dataset.name === currentPlayCard.word) {
+      createStars('correct', starBox, audio);
+
+      cardWord.style.opacity = 0.5;
+      cardWord.style.pointerEvents = 'none';
+
+      currentPlayCardIndex++;
+
+      if (currentPlayCardIndex === playListCards.length) {
+        // If there are errors
+        if (errorsCount) {
+          gameIsOver('lose');
+        } else {
+          gameIsOver('win');
+        }
+      } else {
+        setTimeout(() => {
+          currentPlayCard = playListCards[currentPlayCardIndex];
+          audio = new Audio(currentPlayCard.audioSrc);
+          audio.play();
+        }, 1000);
+      }
+
+    } else {
+      createStars('incorrect', starBox, audio);
+
+      errorsCount++;
+    }
+  });
+}, {once: true});
