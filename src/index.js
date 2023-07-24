@@ -20,10 +20,7 @@ for (let i = 0; i < cards.length - 1; i++) {
 let wordStatisticsMap = new Map();
 if (!sessionStorage.getItem('stat')) {
 
-  // console.log(wordStatisticsMap.size);
-
   if (wordStatisticsMap.size == 0) {
-    // wordStatisticsMap = new Map();
     for (let entry of wordCollection) {
       for(let card of entry[1]) {
         const wordStatistics = new WordStatistics(card.word, entry[0], card.translation);
@@ -104,11 +101,27 @@ burgerMenu.style.left = `${coordsBurgerBtn.left - 20}px`;
 
 // Add listener for window to correct position burger-menu & play button
 window.addEventListener('resize', () => {
-  coordsBurgerBtn = getCoords(burgerBtn);
-  burgerMenu.style.left = `${coordsBurgerBtn.left - 20}px`;
-
+  correctPositionBurgerMenu();
   correctPositionPlayBtn();
 });
+
+// Function correct position burger-menu
+function correctPositionBurgerMenu() {
+  coordsBurgerBtn = getCoords(burgerBtn);
+  const homeImg = document.querySelector('.burger-menu__main-img');
+  const widthScreen = document.documentElement.scrollWidth;
+  burgerMenu.style.left = `${coordsBurgerBtn.left - 20}px`;
+
+  if (widthScreen > 466 && widthScreen < 682) {
+    burgerMenu.style.top = 6 + 'rem';
+    burgerMenu.style.height = 'calc(100vh - 6rem)';
+  }
+
+  if (widthScreen < 466) {
+    burgerMenu.style.paddingTop = 4 + 'rem';
+    homeImg.style.top = 4.45 + 'rem';
+  }
+}
 
 // Function open&close burger-menu
 function openCloseBurgerMenu() {
@@ -121,6 +134,7 @@ function openCloseBurgerMenu() {
 // Add listener for burger button to open&close burger-menu
 burgerBtn.addEventListener('click', () => {
   openCloseBurgerMenu();
+  correctPositionBurgerMenu();
   correctPositionPlayBtn();
 });
 
@@ -314,7 +328,7 @@ function createTableHeaderTitles(statTableBody) {
   const thTitles = ['№', 'Category', 'Word', 'Translation', 'Clicks', 'Correct', 'Wrong', '% Correct'];
   thTitles.forEach((item) => {
     if (item === '№') {
-      createElem(statTableTr, 'th', item, '');
+      createElem(statTableTr, 'th', item, 'stat__number');
     } else if (item === 'Category' || item === 'Word' || item === 'Translation') {
       const statTableTh = createElem(statTableTr, 'th', item, 'stat__th');
       statTableTh.dataset.headersTitle = item;
@@ -366,6 +380,8 @@ statPageLink.addEventListener('click', () => {
     gameIsOver('lose');
     openCloseBurgerMenu();
   } else {
+    playBtn.style.display = 'none';
+
     currentCategory = statPageLink.dataset.category;
 
     sessionStorage.setItem('stat', JSON.stringify(Array.from(wordStatisticsMap.entries())));
@@ -446,6 +462,8 @@ statPageLink.addEventListener('click', () => {
     statResetBtn.addEventListener('click', () => {
       sessionStorage.clear();
 
+      wordCollectionForRepeat = [];
+
       wordStatisticsMap = new Map();
       for (let entry of wordCollection) {
         for(let card of entry[1]) {
@@ -478,10 +496,6 @@ function handlerRepeatWords(event) {
       if(item.word === cardWord.dataset.name) {
         const audio = new Audio(item.audioSrc);
         audio.play();
-
-        // console.log(wordStatisticsMap);
-        // console.log(wordCollectionForRepeat);
-        // wordStatisticsMap.get(item.word + '_' + currentCategory).addTrainCount();
       }
     });
   }
@@ -601,31 +615,6 @@ cardsInner.addEventListener('click', function(event) {
   });
 });
 
-
-
-// cardsInner.addEventListener('click', function(event) {
-//   const cardFront = event.target.closest('.card__front');
-//   const cardWord = event.target.closest('.card__word');
-
-//   if (!isRepeatMode || document.querySelector('table')) return;
-
-//   // console.log(wordCollectionForRepeat);
-
-//   wordCollectionForRepeat.forEach((item) => {
-//     if(item.word === cardWord.dataset.name) {
-//       const audio = new Audio(item.audioSrc);
-//       audio.play();
-
-//       // console.log(11111111111111111111111111);s
-
-//       wordStatisticsMap.get(item.word + '_' + currentCategory).addTrainCount();
-//     }
-//   });
-
-
-//   //Array.from(wordCollection.values()).flat().find(item => item.word === name);
-// });
-
 // ----- Play mode -----
 
 // Global variable switch button
@@ -673,7 +662,6 @@ function changeStylesWordCardsDependingOnMode() {
 // Function change styles play button depending on mode
 function changeStylesPlayBtnDependingOnMode() {
   if (switchBtn.checked) {
-    // console.log(1);
     playBtn.style.display = 'inline-block';
     correctPositionPlayBtn();
   } else {
@@ -687,7 +675,12 @@ function correctPositionPlayBtn() {
     const widthScreen = document.documentElement.scrollWidth;
     const playBtnWidth = playBtn.offsetWidth;
 
-    playBtn.style.top = 10 + 'rem';
+    if (widthScreen < 464) {
+      playBtn.style.top = 13 + 'rem';
+    } else {
+      playBtn.style.top = 10.5 + 'rem';
+    }
+
     playBtn.style.left = widthScreen / 2 - playBtnWidth /2 + 'px';
   }
 
@@ -843,8 +836,6 @@ playBtn.addEventListener('click', () => {
 
       currentWordStatistics.addPlayCount();
 
-      // console.log(currentWordStatistics);
-
       cardWord.style.opacity = 0.5;
       cardWord.style.pointerEvents = 'none';
 
@@ -867,11 +858,7 @@ playBtn.addEventListener('click', () => {
 
     } else {
       createStars('incorrect', starBox, audio);
-
       currentWordStatistics.addErrorCount();
-
-      // console.log(currentWordStatistics);
-
       errorsCount++;
     }
   });
