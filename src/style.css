@@ -184,10 +184,10 @@ p {
 
 }
 
-.burger-menu ul li a::before {
+.burger-menu ul li a::after {
     content: "";
     position: absolute;
-    bottom: -3px;
+    bottom: -8px;
     left: 0;
     z-index: 1;
 
@@ -201,7 +201,7 @@ p {
 
 }
 
-.burger-menu ul li a:hover::before {
+.burger-menu ul li a:hover::after {
     width: 100%;
 }
 
@@ -211,6 +211,19 @@ p {
 
 .burger-menu ul li a.burger-menu__main-link {
     padding-left: 3rem;
+}
+
+.burger-menu ul li a.burger-menu__main-link::before {
+    content: "";
+    display: block;
+    position: absolute;
+    bottom: -0.8rem;
+    left: 0;
+
+    width: 100%;
+    height: 5px;
+    background-color: transparent;
+    border-bottom: 2px dashed rgba(0, 0, 0, 0.5);
 }
 
 .burger-menu__main-img {
@@ -334,6 +347,7 @@ path {
     justify-content: center;
 
     margin-top: 10rem;
+    padding-bottom: 5rem;
 }
 
 .card {
@@ -457,7 +471,7 @@ path {
     width: 15rem;
     height: 5rem;
     overflow: hidden;
-    background: #eeedf2;
+    background: #d9d2e6;
     box-shadow: 0px 5px 8px 4px rgba(34, 60, 80, 0.2);
     border: 7px solid #eeedf2;
     border-radius: 5rem;
@@ -521,8 +535,6 @@ path {
 
     width: 45rem;
     height: 4rem;
-
-    /* overflow: hidden; */
 }
 
 .play__star-img {
@@ -541,6 +553,141 @@ path {
 
 .play__losing-count {
     margin-top: 3rem;
+    font-size: 3rem;
+    text-align: center;
+}
+
+/* Statistics */
+
+.stat__link::before {
+    content: "";
+    display: block;
+    position: absolute;
+    top: -0.95rem;
+    left: 0;
+    width: 100% !important;
+    height: 5px !important;
+    background-color: transparent !important;
+    border-top: 2px dashed rgba(0, 0, 0, 0.5);
+}
+
+.stat__table {
+    font-size: 1.8rem;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.stat__table, .stat__th, .stat__td {
+    padding: 0.2rem 0.5rem;
+    border-collapse: collapse;
+    border: 1px solid #000;
+}
+
+.stat__th {
+    user-select: none;
+    position: relative;
+    cursor: pointer;
+}
+
+.stat__th:hover .stat__th-img {
+    opacity: 1;
+}
+
+.stat__th.stat__th_num {
+    padding: 0 2rem;
+}
+
+.stat__th-img {
+    display: block;
+    position: absolute;
+    top: 0.5rem;
+    right: 0;
+    z-index: 1;
+    width: 1.6rem;
+    height: 1.6rem;
+
+    transition: opacity ease 0.2s;
+
+    opacity: 0;
+}
+
+.stat__td_center {
+    text-align: center;
+}
+
+.stat__btn-inner {
+    display: flex;
+    justify-content: center;
+    width: 50rem;
+    margin-bottom: 2.5rem;
+}
+
+.stat__btn {
+    position: relative;
+    padding: 1rem 1rem;
+    margin-left: 2rem;
+    margin-right: 2rem;
+
+    overflow: hidden;
+    background: #d9d2e6;
+    box-shadow: 0px 5px 8px 4px rgba(34, 60, 80, 0.2);
+    border: 7px solid #eeedf2;
+    border-radius: 5rem;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2rem;
+    color: #000;
+    transition: transform .2s ease-in-out, background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.stat__btn::before {
+    content: "";
+    background: linear-gradient(90deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .5));
+    height: 70px;
+    width: 50px;
+    position: absolute;
+    top: -8px;
+    left: -100px;
+    transform: skewX(-45deg);
+}
+
+.stat__btn.stat__btn_train:hover {
+    color: #fff;
+    background-color: #9abb82;
+    transform: scale(1.1);
+}
+
+.stat__btn.stat__btn_reset:hover {
+    color: #fff;
+    background-color: #d25050;
+    transform: scale(1.1);
+}
+
+.stat__btn.hover {
+    background-color: #eeedf2;
+}
+
+.stat__btn:hover::before {
+    left: 200px;
+    transition: 0.65s ease-in-out;
+}
+
+.stat__nothing {
+    margin-top: 12rem;
+    font-size: 3rem;
+}
+
+.stat__img {
+    user-select: none;
+    display: inline-block;
+    margin: 0 auto;
+    width: 30rem;
+    height: auto;
+}
+
+.stat__nothing {
+    margin-top: 2rem;
     font-size: 3rem;
     text-align: center;
 }

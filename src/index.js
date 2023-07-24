@@ -1,19 +1,66 @@
 import './style.css';
 import cards from './assets/js/cards';
-import Card from './assets/module/Card';
-import CardWord from './assets/module/CardWord';
+import Card from './assets/modules/Card';
+import CardWord from './assets/modules/CardWord';
+import WordStatistics from './assets/modules/WordStatistics';
 import { createElem } from './assets/js/helpers';
 import { getCoords } from './assets/js/helpers';
 
-// Global variable name mode
+
+// Create & set word collection
+const wordCollection = new Map();
+
+for (let i = 0; i < cards.length - 1; i++) {
+  wordCollection.set(cards[0][i], cards[i + 1]);
+}
+
+// ----- Statistics -----
+
+// Fill statistics map
+let wordStatisticsMap = new Map();
+if (!sessionStorage.getItem('stat')) {
+
+  // console.log(wordStatisticsMap.size);
+
+  if (wordStatisticsMap.size == 0) {
+    // wordStatisticsMap = new Map();
+    for (let entry of wordCollection) {
+      for(let card of entry[1]) {
+        const wordStatistics = new WordStatistics(card.word, entry[0], card.translation);
+        wordStatisticsMap.set(card.word + '_' + entry[0], wordStatistics);
+      }
+    }
+  }
+} else {
+  getStatisticsInfoFromStorage();
+}
+
+// Global variable name mode & current category
 let isTrainMode = true;
+let isRepeatMode = false;
+let currentCategory = null;
 
 // ----- Burger-menu -----
 const { body } = document;
 
+// Create play button
+let playBtn = createElem(body, 'button', 'Start', 'play__btn');
+
 // Create mask & add to page
 const mask= createElem(body, 'div', '', 'mask');
 mask.hidden = true;
+
+// Add listener for mask to close burger-menu
+mask.addEventListener('click', () => {
+  openCloseBurgerMenu();
+});
+
+// Add listener for logo if push reload page
+const logo = document.querySelector('.header__logo');
+
+logo.addEventListener('click', () => {
+  location.reload();
+});
 
 // Create burger-menu & add to page
 const burgerMenu = createElem(body, 'nav', '', 'burger-menu');
@@ -43,6 +90,12 @@ categoriesName.forEach((category) => {
 
   burgerInner.append(burgerItem);
 });
+
+// Add Statistics link
+const burgerItemLi = createElem(burgerInner, 'li', '', '');
+const statPageLink = createElem(burgerItemLi, 'a', 'Statistics', 'stat__link');
+statPageLink.setAttribute('href', '#');
+statPageLink.dataset.category = 'Statistics';
 
 // Burger-menu positioning
 const burgerBtn = document.querySelector('#burger-btn');
@@ -83,14 +136,11 @@ function removeActiveStyleSvg() {
   homeImg.style.strokeWidth = 1 + 'px';
 }
 
-// Create play button
-const playBtn = createElem(body, 'button', 'Start', 'play__btn');
-
 // Add listener for burger-menu to open selected category
 burgerInner.addEventListener('click', function(event) {
   const link = event.target.closest('a');
 
-  if (!link) return;
+  if (!link || link.classList.contains('stat__link')) return;
 
   if (link.classList.contains('burger-menu__main-link')) {
     location.reload();
@@ -101,40 +151,348 @@ burgerInner.addEventListener('click', function(event) {
     gameIsOver('lose');
     openCloseBurgerMenu();
   } else {
+    if (currentCategory === 'Statistics') {
+      cardsInner.style.marginTop = 10 + 'rem';
+    }
+
+    if (isRepeatMode) {
+      isRepeatMode = false;
+      wordCollectionForRepeat = [];
+      cardsInner.removeEventListener('click', handlerRepeatWords);
+      cardsInner.style.flexDirection = 'row';
+
+      const headerSwitch = document.querySelector('.header__switch');
+      headerSwitch.style.opacity = 1;
+      headerSwitch.style.zIndex = 1;
+    }
+
     removeActiveStyleSvg();
 
-  const linkDataCategory = link.dataset.category;
+    const linkDataCategory = link.dataset.category;
 
-  cardsInner.replaceChildren();
-  addWordCards(linkDataCategory);
-  currentCategory = linkDataCategory;
+    cardsInner.replaceChildren();
+    addWordCards(linkDataCategory);
+    currentCategory = linkDataCategory;
 
-  link.classList.add('burger__link_active');
-  previousActiveLink = link;
-  openCloseBurgerMenu();
+    link.classList.add('burger__link_active');
+    previousActiveLink = link;
+    openCloseBurgerMenu();
 
-  managePlayMode();
+    managePlayMode();
 
-  setPlayBtnDefaultStyles();
-  correctPositionPlayBtn();
+    setPlayBtnDefaultStyles();
+    correctPositionPlayBtn();
   }
 });
 
-// Add listener for mask to close burger-menu
-mask.addEventListener('click', () => {
-  openCloseBurgerMenu();
+// Function get statistics info from session storage
+function getStatisticsInfoFromStorage() {
+  if (sessionStorage.getItem('stat')) {
+    const statMapFromStorage = new Map(JSON.parse(sessionStorage.getItem('stat')));
+    const wordStatMapFromStorage = new Map();
+
+    for (let entry of statMapFromStorage) {
+      const card = entry[1];
+      const wordStatistics = new WordStatistics(card._name, card._category, card._translation, card._trainCount, card._playCount, card._errorCount, card._percent);
+
+      wordStatMapFromStorage.set(card._name + '_' + card._category, wordStatistics);
+    }
+    wordStatisticsMap = wordStatMapFromStorage;
+  }
+}
+
+// Global variable sorting state
+let categorySortDesc = false;
+let wordSortDesc = false;
+let translationSortDesc = false;
+let clickSortDesc = false;
+let correctSortDesc = false;
+let wrongSortDesc = false;
+let percentSortDesc = false;
+
+// Function create statistics table
+function createStatisticsTable() {
+  const statTable = createElem(cardsInner, 'table', '', 'stat__table');
+  const statTableBody = createElem(statTable, 'tbody', '', '');
+
+  createTableHeaderTitles(statTableBody);
+  fillStatisticsTable(statTableBody);
+
+  // Add listener for table header titles to sorting
+  const statHeaders = document.querySelector('.stat__headers');
+
+  statHeaders.addEventListener('click', function(event) {
+    const title = event.target.closest('.stat__th');
+
+    if (!title) return;
+
+    switch (title.dataset.headersTitle) {
+
+      case 'Category':
+        categorySortDesc = !categorySortDesc;
+
+        if (categorySortDesc) {
+          wordStatisticsMap = new Map([...wordStatisticsMap].sort((a, b) => (a[1].category > b[1].category ? 1 : -1)));
+        } else {
+          wordStatisticsMap = new Map([...wordStatisticsMap].sort((a, b) => (b[1].category > a[1].category ? 1 : -1)));
+        }
+      break;
+
+      case 'Word':
+        wordSortDesc = !wordSortDesc;
+
+        if (wordSortDesc) {
+          wordStatisticsMap = new Map([...wordStatisticsMap].sort((a, b) => (a[1].name > b[1].name ? 1 : -1)));
+        } else {
+          wordStatisticsMap = new Map([...wordStatisticsMap].sort((a, b) => (b[1].name > a[1].name ? 1 : -1)));
+        }
+      break;
+
+      case 'Translation':
+        translationSortDesc = !translationSortDesc;
+
+        if (translationSortDesc) {
+          wordStatisticsMap = new Map([...wordStatisticsMap].sort((a, b) => (a[1].translation > b[1].translation ? 1 : -1)));
+        } else {
+          wordStatisticsMap = new Map([...wordStatisticsMap].sort((a, b) => (b[1].translation > a[1].translation ? 1 : -1)));
+        }
+      break;
+
+      case 'Clicks':
+        clickSortDesc = !clickSortDesc;
+
+        if (clickSortDesc) {
+          wordStatisticsMap = new Map([...wordStatisticsMap].sort((a, b) => a[1].trainCount - b[1].trainCount));
+        } else {
+          wordStatisticsMap = new Map([...wordStatisticsMap].sort((a, b) => b[1].trainCount - a[1].trainCount));
+        }
+      break;
+
+      case 'Correct':
+        correctSortDesc = !correctSortDesc;
+
+        if (correctSortDesc) {
+          wordStatisticsMap = new Map([...wordStatisticsMap].sort((a, b) => a[1].playCount - b[1].playCount));
+        } else {
+          wordStatisticsMap = new Map([...wordStatisticsMap].sort((a, b) => b[1].playCount - a[1].playCount));
+        }
+      break;
+
+      case 'Wrong':
+        wrongSortDesc = !wrongSortDesc;
+
+        if (wrongSortDesc) {
+          wordStatisticsMap = new Map([...wordStatisticsMap].sort((a, b) => a[1].errorCount - b[1].errorCount));
+        } else {
+          wordStatisticsMap = new Map([...wordStatisticsMap].sort((a, b) => b[1].errorCount - a[1].errorCount));
+        }
+      break;
+
+      case '% Correct':
+        percentSortDesc = !percentSortDesc;
+
+        if (percentSortDesc) {
+          wordStatisticsMap = new Map([...wordStatisticsMap].sort((a, b) => a[1].percent - b[1].percent));
+        } else {
+          wordStatisticsMap = new Map([...wordStatisticsMap].sort((a, b) => b[1].percent - a[1].percent));
+        }
+      break;
+    }
+
+    for (let i = 1; i < statTable.rows.length;) {
+      statTable.deleteRow(i);
+    }
+
+    fillStatisticsTable(statTableBody);
+
+  });
+}
+
+// Function create headers title table
+function createTableHeaderTitles(statTableBody) {
+  const statTableTr = createElem(statTableBody, 'tr', '', 'stat__headers');
+  const thTitles = ['№', 'Category', 'Word', 'Translation', 'Clicks', 'Correct', 'Wrong', '% Correct'];
+  thTitles.forEach((item) => {
+    if (item === '№') {
+      createElem(statTableTr, 'th', item, '');
+    } else if (item === 'Category' || item === 'Word' || item === 'Translation') {
+      const statTableTh = createElem(statTableTr, 'th', item, 'stat__th');
+      statTableTh.dataset.headersTitle = item;
+      const statTableThIco = createElem(statTableTh, 'img', '', 'stat__th-img');
+      statTableThIco.src = 'img/sort-icon.svg';
+      statTableThIco.alt = 'sort';
+    } else {
+      const statTableTh = createElem(statTableTr, 'th', item, ['stat__th', 'stat__th_num']);
+      statTableTh.dataset.headersTitle = item;
+      const statTableThIco = createElem(statTableTh, 'img', '', 'stat__th-img');
+      statTableThIco.src = 'img/sort-icon.svg';
+      statTableThIco.alt = 'sort';
+    }
+  });
+}
+
+// Function fill statistics table
+function fillStatisticsTable(statTableBody) {
+  let numberingCount = 0;
+
+  for (let entry of wordStatisticsMap) {
+    const statTableTr = createElem(statTableBody, 'tr', '', '');
+    const wordObj = entry[1];
+
+    createElem(statTableTr, 'td', ++numberingCount, ['stat__td', 'stat__td_center']);
+    createElem(statTableTr, 'td', wordObj.category, 'stat__td');
+    createElem(statTableTr, 'td', wordObj.name, 'stat__td');
+    createElem(statTableTr, 'td', wordObj.translation, 'stat__td');
+    createElem(statTableTr, 'td', wordObj.trainCount, ['stat__td', 'stat__td_center']);
+    createElem(statTableTr, 'td', wordObj.playCount, ['stat__td', 'stat__td_center']);
+    createElem(statTableTr, 'td', wordObj.errorCount, ['stat__td', 'stat__td_center']);
+    createElem(statTableTr, 'td', wordObj.percent, ['stat__td', 'stat__td_center']);
+  }
+}
+
+// Function create statistics buttons
+function createStatisticsBtns() {
+  const statBtnsInner = createElem(cardsInner, 'div', '', 'stat__btn-inner');
+  createElem(statBtnsInner, 'button', 'Train difficult', ['stat__btn', 'stat__btn_train']);
+  createElem(statBtnsInner, 'button', 'Reset statistics', ['stat__btn', 'stat__btn_reset']);
+}
+
+// Global variable for the collection of words to repeat
+let wordCollectionForRepeat = [];
+
+// Add listener for statistics link to open statistics page
+statPageLink.addEventListener('click', () => {
+  if (playListCards) {
+    gameIsOver('lose');
+    openCloseBurgerMenu();
+  } else {
+    currentCategory = statPageLink.dataset.category;
+
+    sessionStorage.setItem('stat', JSON.stringify(Array.from(wordStatisticsMap.entries())));
+    getStatisticsInfoFromStorage();
+    cardsInner.replaceChildren();
+    cardsInner.style.marginTop = 3 + 'rem';
+    createStatisticsBtns();
+    createStatisticsTable();
+
+    openCloseBurgerMenu();
+
+    // Add listener for statistics train button to train difficult words
+    const statTrainBtn = document.querySelector('.stat__btn_train');
+
+    statTrainBtn.addEventListener('click', () => {
+      isRepeatMode = true;
+
+      const sortedPercentMap = new Map([...wordStatisticsMap]
+        .sort((a, b) => a[1].percent - b[1].percent)
+        .filter( item => (item[1].percent != 0 && item[1].percent != 100)
+          || (item[1].percent === 0 && item[1].errorCount > 0)))
+      ;
+
+      let countWords = 0;
+      for (let obj of sortedPercentMap.values()) {
+        if (countWords < 8) {
+          let cardForRepeat = findCardByWordName(obj.name);
+          wordCollectionForRepeat.push(cardForRepeat);
+          countWords++;
+        }
+      }
+
+      if (wordCollectionForRepeat.length != 0) {
+        const headerSwitch = document.querySelector('.header__switch');
+        headerSwitch.style.opacity = 0;
+        headerSwitch.style.zIndex = -1;
+        cardsInner.replaceChildren();
+
+
+        wordCollectionForRepeat.forEach((item) => {
+          const wordCard = new CardWord('cardWord', 'card__word');
+          const cardWordSrc = item.image;
+          const cardWordAlt = item.word;
+          const cardWordFrontTitle = item.word;
+          const cardWordBackTitle = item.translation;
+
+          cardsInner.append(wordCard.createCard(cardWordSrc, cardWordAlt, 'card__word-img', 'card__word-title', cardWordFrontTitle, cardWordBackTitle, 'card__front', 'card__back'));
+        });
+
+        cardsInner.addEventListener('click', handlerRepeatWords);
+      } else {
+        cardsInner.replaceChildren();
+        cardsInner.style.flexDirection = 'column';
+        cardsInner.style.marginTop = 10 + 'rem';
+
+        const headerSwitch = document.querySelector('.header__switch');
+        headerSwitch.style.opacity = 0;
+        headerSwitch.style.zIndex = -1;
+
+        const statImg = createElem(cardsInner, 'img', '', 'stat__img');
+        statImg.src = 'img/win.gif';
+        statImg.alt = 'nothing to repeat';
+        createElem(cardsInner, 'h3', 'Nothing to repeat!', 'stat__nothing');
+
+        const audio = new Audio;
+        audio.src = 'audio/success.mp3';
+        audio.play();
+
+        setTimeout(() => {
+          location.reload();
+        }, 3000);
+      }
+    });
+
+    // Add listener for statistics reset button to reset statistics
+    const statResetBtn = document.querySelector('.stat__btn_reset');
+
+    statResetBtn.addEventListener('click', () => {
+      sessionStorage.clear();
+
+      wordStatisticsMap = new Map();
+      for (let entry of wordCollection) {
+        for(let card of entry[1]) {
+          const wordStatistics = new WordStatistics(card.word, entry[0], card.translation);
+          wordStatisticsMap.set(card.word + '_' + entry[0], wordStatistics);
+        }
+      }
+
+      const statTable = document.querySelector('table');
+      const statTableBody = document.querySelector('tbody');
+
+      for (let i = 1; i < statTable.rows.length;) {
+        statTable.deleteRow(i);
+      }
+
+      fillStatisticsTable(statTableBody);
+    });
+  }
 });
 
-// Add listener for logo if push reload page
-const logo = document.querySelector('.header__logo');
+function handlerRepeatWords(event) {
+  const cardFront = event.target.closest('.card__front');
+  const cardWord = event.target.closest('.card__word');
+  const rotateBtn = event.target.closest('.card__rotate-btn');
 
-logo.addEventListener('click', () => {
-  location.reload();
-});
+  if (!cardFront || rotateBtn || !isTrainMode || !isRepeatMode) return;
+
+  if (cardWord) {
+    wordCollectionForRepeat.forEach((item) => {
+      if(item.word === cardWord.dataset.name) {
+        const audio = new Audio(item.audioSrc);
+        audio.play();
+
+        // console.log(wordStatisticsMap);
+        // console.log(wordCollectionForRepeat);
+        // wordStatisticsMap.get(item.word + '_' + currentCategory).addTrainCount();
+      }
+    });
+  }
+}
+
+// Function find card by word name
+function findCardByWordName(name) {
+  return Array.from(wordCollection.values()).flat().find(item => item.word === name);
+}
 
 // ----- Categories -----
-
-let currentCategory = null;
 
 // Set categories name & image source
 const categoriesInfo = [];
@@ -175,13 +533,6 @@ function addWordCards(key) {
 
     cardsInner.append(wordCard.createCard(cardWordSrc, cardWordAlt, 'card__word-img', 'card__word-title', cardWordFrontTitle, cardWordBackTitle, 'card__front', 'card__back'));
   });
-}
-
-// Create & set word collection
-const wordCollection = new Map();
-
-for (let i = 0; i < cards.length - 1; i++) {
-  wordCollection.set(cards[0][i], cards[i + 1]);
 }
 
 // Add listener for cards when happened 'click' on categories card
@@ -238,15 +589,42 @@ cardsInner.addEventListener('click', function(event) {
   const cardWord = event.target.closest('.card__word');
   const rotateBtn = event.target.closest('.card__rotate-btn');
 
-  if (!cardFront || rotateBtn || !isTrainMode) return;
+  if (!cardFront || rotateBtn || !isTrainMode || isRepeatMode) return;
 
   wordCollection.get(currentCategory).forEach((item) => {
     if(item.word === cardWord.dataset.name) {
       const audio = new Audio(item.audioSrc);
       audio.play();
+
+      wordStatisticsMap.get(item.word + '_' + currentCategory).addTrainCount();
     }
   });
 });
+
+
+
+// cardsInner.addEventListener('click', function(event) {
+//   const cardFront = event.target.closest('.card__front');
+//   const cardWord = event.target.closest('.card__word');
+
+//   if (!isRepeatMode || document.querySelector('table')) return;
+
+//   // console.log(wordCollectionForRepeat);
+
+//   wordCollectionForRepeat.forEach((item) => {
+//     if(item.word === cardWord.dataset.name) {
+//       const audio = new Audio(item.audioSrc);
+//       audio.play();
+
+//       // console.log(11111111111111111111111111);s
+
+//       wordStatisticsMap.get(item.word + '_' + currentCategory).addTrainCount();
+//     }
+//   });
+
+
+//   //Array.from(wordCollection.values()).flat().find(item => item.word === name);
+// });
 
 // ----- Play mode -----
 
@@ -295,6 +673,7 @@ function changeStylesWordCardsDependingOnMode() {
 // Function change styles play button depending on mode
 function changeStylesPlayBtnDependingOnMode() {
   if (switchBtn.checked) {
+    // console.log(1);
     playBtn.style.display = 'inline-block';
     correctPositionPlayBtn();
   } else {
@@ -339,7 +718,6 @@ function setPlayBtnDefaultStyles() {
   }
 }
 
-
 // Function manage play mode
 function managePlayMode() {
   changeStylesWordCardsDependingOnMode();
@@ -356,7 +734,7 @@ function managePlayMode() {
 // Add listener for switch mode to change mode
 switchBtn.addEventListener('change', () => {
 
-  if (cardsInner.children[0].classList.contains('card')) return;
+  if (cardsInner.children[0].classList.contains('card') || currentCategory === 'Statistics') return;
 
   managePlayMode();
   setPlayBtnDefaultStyles();
@@ -376,14 +754,6 @@ function resetGlobalPropertyForPlayMode() {
   playListCards = null;
   currentPlayCardIndex = 0;
   errorsCount = 0;
-}
-
-// Function rotate play repeat button in click at play button
-function rotateRepeatBtn() {
-  const playBtnImg = document.querySelector('.play__btn-img_repeat');
-  let current = getComputedStyle(playBtnImg).transform;
-  if (current == 'none') current = '';
-  playBtnImg.style.transform = current + 'rotate(270deg)';
 }
 
 // Function play current word audio
@@ -424,7 +794,7 @@ function gameIsOver(result) {
 
   const audio = new Audio;
   const gameImg = createElem(cardsInner, 'img', '', 'play__img');
-  const gameText = createElem(cardsInner, 'h3', `Number of mistakes: ${errorsCount}`, 'play__losing-count');
+  const gameText = createElem(cardsInner, 'h3', '', 'play__losing-count');
 
   if (result === 'lose') {
     audio.src = 'audio/failure.mp3';
@@ -466,8 +836,14 @@ playBtn.addEventListener('click', () => {
 
     if (!cardWord) return;
 
+    let currentWordStatistics = wordStatisticsMap.get(currentPlayCard.word + '_' + currentCategory);
+
     if (cardWord.dataset.name === currentPlayCard.word) {
       createStars('correct', starBox, audio);
+
+      currentWordStatistics.addPlayCount();
+
+      // console.log(currentWordStatistics);
 
       cardWord.style.opacity = 0.5;
       cardWord.style.pointerEvents = 'none';
@@ -482,8 +858,8 @@ playBtn.addEventListener('click', () => {
           gameIsOver('win');
         }
       } else {
+        currentPlayCard = playListCards[currentPlayCardIndex];
         setTimeout(() => {
-          currentPlayCard = playListCards[currentPlayCardIndex];
           audio = new Audio(currentPlayCard.audioSrc);
           audio.play();
         }, 1000);
@@ -492,7 +868,16 @@ playBtn.addEventListener('click', () => {
     } else {
       createStars('incorrect', starBox, audio);
 
+      currentWordStatistics.addErrorCount();
+
+      // console.log(currentWordStatistics);
+
       errorsCount++;
     }
   });
 }, {once: true});
+
+// Add listener for window to set word's statistics in session storage
+window.addEventListener('beforeunload', () => {
+  sessionStorage.setItem('stat', JSON.stringify(Array.from(wordStatisticsMap.entries())));
+});
