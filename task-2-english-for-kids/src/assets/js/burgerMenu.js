@@ -50,6 +50,8 @@ export function correctPositionBurgerMenu(burgerMenu, burgerBtn) {
 
   if (widthScreen < 466) {
     burgerMenu.style.paddingTop = `${4}rem`;
-    homeImg.style.top = `${4.45}rem`;
+    if (homeImg) {
+      homeImg.style.top = `${4.45}rem`;
+    }
   }
 }
