@@ -1,9 +1,17 @@
-import Card from "./Card";
-import { createElem } from "../js/helpers";
+import Card, { addCardContent } from './Card';
+import { createElem } from '../js/helpers';
 
 class CardWord extends Card {
-  createCard(srcImg, altText, classNameImg,  classNameTitle, frontTitleText, backTitleText, classNameFront, classNameBack) {
-
+  createCard(
+    srcImg,
+    altText,
+    classNameImg,
+    classNameTitle,
+    frontTitleText,
+    backTitleText,
+    classNameFront,
+    classNameBack,
+  ) {
     const cardWord = super.createCardContainer(frontTitleText);
 
     const cardFrontSide = createElem(cardWord, 'div', '', classNameFront);
@@ -12,8 +20,22 @@ class CardWord extends Card {
 
     const cardBackSide = createElem(cardWord, 'div', '', classNameBack);
 
-    super.addCardContent(cardFrontSide, srcImg, altText, classNameImg, classNameTitle,  frontTitleText);
-    super.addCardContent(cardBackSide, srcImg, altText, classNameImg, classNameTitle,  backTitleText);
+    addCardContent(
+      cardFrontSide,
+      srcImg,
+      altText,
+      classNameImg,
+      classNameTitle,
+      frontTitleText,
+    );
+    addCardContent(
+      cardBackSide,
+      srcImg,
+      altText,
+      classNameImg,
+      classNameTitle,
+      backTitleText,
+    );
 
     return cardWord;
   }

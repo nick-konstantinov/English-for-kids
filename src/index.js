@@ -1,14 +1,22 @@
 import './style.css';
 import cards from './assets/js/cards';
-import Card from './assets/modules/Card';
+import { Card } from './assets/modules/Card';
 import CardWord from './assets/modules/CardWord';
 import WordStatistics from './assets/modules/WordStatistics';
 import { createElem } from './assets/js/helpers';
 import { getStatisticsInfoFromStorage, setStatisticsInfoToStorage } from './assets/js/sessionStorageHelper';
-import { createMainLink, createCategoriesLinks, createStatLink, correctPositionBurgerMenu } from './assets/js/burgerMenu';
-import { sortByCategory, sortByWordName, sortByErrorCount, sortByPercent, sortByPlayCount, sortByTrainCount, sortByTranslation, filterZeroAndHundredAndPercentSort } from './assets/js/statisticSort';
+import {
+  createMainLink, createCategoriesLinks, createStatLink, correctPositionBurgerMenu,
+} from './assets/js/burgerMenu';
+import {
+  sortByCategory, sortByWordName, sortByErrorCount, sortByPercent,
+  sortByPlayCount, sortByTrainCount, sortByTranslation, filterZeroAndHundredAndPercentSort,
+} from './assets/js/statisticSort';
 import { createTableHeaderTitles, fillStatisticsTable, createStatisticsBtns } from './assets/js/statTable';
-import { changeStylesWordCardsDependingOnMode, changeStylesPlayBtnDependingOnMode, correctPositionPlayBtn, changeStylesPlayBtnToRepeatBtn, setPlayBtnDefaultStyles } from './assets/js/playMode';
+import {
+  changeStylesWordCardsDependingOnMode, changeStylesPlayBtnDependingOnMode,
+  correctPositionPlayBtn, changeStylesPlayBtnToRepeatBtn, setPlayBtnDefaultStyles,
+} from './assets/js/playMode';
 
 // Create & set word collection
 const wordCollection = new Map();
@@ -22,12 +30,11 @@ for (let i = 0; i < cards.length - 1; i++) {
 // Fill statistics map
 let wordStatisticsMap = new Map();
 if (!sessionStorage.getItem('stat')) {
-
-  if (wordStatisticsMap.size == 0) {
-    for (let entry of wordCollection) {
-      for(let card of entry[1]) {
+  if (wordStatisticsMap.size === 0) {
+    for (const entry of wordCollection) {
+      for (const card of entry[1]) {
         const wordStatistics = new WordStatistics(card.word, entry[0], card.translation);
-        wordStatisticsMap.set(card.word + '_' + entry[0], wordStatistics);
+        wordStatisticsMap.set(`${card.word}_${entry[0]}`, wordStatistics);
       }
     }
   }
@@ -44,35 +51,16 @@ let currentCategory = null;
 const { body } = document;
 
 // Create play button
-let playBtn = createElem(body, 'button', 'Start', 'play__btn');
+const playBtn = createElem(body, 'button', 'Start', 'play__btn');
 
 // Create mask & add to page
-const mask= createElem(body, 'div', '', 'mask');
+const mask = createElem(body, 'div', '', 'mask');
 mask.hidden = true;
-
-// Add listener for mask to close burger-menu
-mask.addEventListener('click', () => {
-  openCloseBurgerMenu();
-});
-
-// Add listener for logo if push reload page
-const logo = document.querySelector('.header__logo');
-
-logo.addEventListener('click', () => {
-  location.reload();
-});
 
 // Create burger-menu & add to page
 const burgerMenu = createElem(body, 'nav', '', 'burger-menu');
 const burgerInner = createElem(burgerMenu, 'ul', '', '');
 const burgerItem = createElem(burgerInner, 'li', '', '');
-
-// Get categories name
-const categoriesName = cards[0];
-createMainLink(burgerItem);
-createCategoriesLinks(categoriesName, burgerInner);
-const statPageLink = createStatLink(burgerInner);
-
 
 // Burger-menu positioning
 const burgerBtn = document.querySelector('#burger-btn');
@@ -85,6 +73,27 @@ function openCloseBurgerMenu() {
   body.classList.toggle('noscroll');
   mask.hidden = !mask.hidden;
 }
+
+// Add listener for mask to close burger-menu
+mask.addEventListener('click', () => {
+  openCloseBurgerMenu();
+});
+
+// Add listener for logo if push reload page
+const logo = document.querySelector('.header__logo');
+
+logo.addEventListener('click', () => {
+  window.location.reload();
+});
+
+// Get categories name
+const categoriesName = cards[0];
+createMainLink(burgerItem);
+createCategoriesLinks(categoriesName, burgerInner);
+const statPageLink = createStatLink(burgerInner);
+
+// Global variable switch button
+const switchBtn = document.querySelector('.switch-btn input');
 
 // Add listener for burger button to open&close burger-menu
 burgerBtn.addEventListener('click', () => {
@@ -108,17 +117,145 @@ function removeActiveStyleSvg() {
   const homeImg = svg.querySelector('#homeImg');
 
   previousActiveLink.classList.remove('burger__link_active');
-  homeImg.style.strokeWidth = 1 + 'px';
+  homeImg.style.strokeWidth = `${1}px`;
+}
+
+// Global variable play data
+let playListCards = null;
+let currentPlayCardIndex = 0;
+let errorsCount = 0;
+
+// Function for reset global variable's property in play mode
+function resetGlobalPropertyForPlayMode() {
+  playListCards = null;
+  currentPlayCardIndex = 0;
+  errorsCount = 0;
+}
+
+// ----- Categories -----
+
+// Set categories name & image source
+const categoriesInfo = [];
+
+for (let i = 0; i < cards.length - 1; i++) {
+  const categoriesObj = {};
+  categoriesObj.title = categoriesName[i];
+  categoriesObj.srcImg = cards[i + 1][0].image;
+  categoriesObj.altText = categoriesName[i].toLowerCase();
+
+  categoriesInfo.push(categoriesObj);
+}
+
+// Add categories cards to page
+const cardsInner = document.querySelector('.cards');
+
+categoriesInfo.forEach((item) => {
+  const cardCategories = new Card('cardCategories', 'card');
+  const cardCategoriesSrc = item.srcImg;
+  const cardCategoriesAlt = item.altText;
+  const cardCategoriesTitle = item.title;
+
+  cardsInner.append(cardCategories.createCard(cardCategoriesSrc, cardCategoriesAlt, 'card__img', cardCategoriesTitle, 'card__title'));
+});
+
+// Function play audio
+function playAudio(src) {
+  const currentAudio = new Audio(src);
+  currentAudio.play();
+}
+
+// Function game is over
+function gameIsOver(result) {
+  cardsInner.replaceChildren();
+  cardsInner.style.flexDirection = 'column';
+  playBtn.remove();
+
+  const gameImg = createElem(cardsInner, 'img', '', 'play__img');
+  const gameText = createElem(cardsInner, 'h3', '', 'play__losing-count');
+
+  if (result === 'lose') {
+    playAudio('audio/failure.mp3');
+    gameText.innerHTML = `Number of mistakes: ${errorsCount}`;
+    gameImg.src = 'img/sad.gif';
+    gameImg.alt = 'you lose';
+  } else {
+    playAudio('audio/success.mp3');
+    gameText.innerHTML = 'Great job!';
+    gameImg.src = 'img/win.gif';
+    gameImg.alt = 'you win';
+  }
+
+  resetGlobalPropertyForPlayMode();
+
+  setTimeout(() => {
+    window.location.reload();
+  }, 4000);
+}
+
+// Global variable for the collection of words to repeat
+let wordCollectionForRepeat = [];
+
+// Handler for listener's cardsInner in repeat mode
+function handlerRepeatWords(event) {
+  const cardFront = event.target.closest('.card__front');
+  const cardWord = event.target.closest('.card__word');
+  const rotateBtn = event.target.closest('.card__rotate-btn');
+
+  if (!cardFront || rotateBtn || !isTrainMode || !isRepeatMode) return;
+
+  if (cardWord) {
+    wordCollectionForRepeat.forEach((item) => {
+      if (item.word === cardWord.dataset.name) {
+        playAudio(item.audioSrc);
+      }
+    });
+  }
+}
+
+// ----- Words -----
+
+// Function add word cards
+function addWordCards(key) {
+  wordCollection.get(key).forEach((item) => {
+    const wordCard = new CardWord('cardWord', 'card__word');
+    const cardWordSrc = item.image;
+    const cardWordAlt = item.word;
+    const cardWordFrontTitle = item.word;
+    const cardWordBackTitle = item.translation;
+
+    cardsInner.append(wordCard.createCard(cardWordSrc, cardWordAlt, 'card__word-img', 'card__word-title', cardWordFrontTitle, cardWordBackTitle, 'card__front', 'card__back'));
+  });
+}
+
+// ----- Play mode -----
+
+// Function play current word audio
+function playCurrentWordAudio() {
+  const currentPlayCard = playListCards[currentPlayCardIndex];
+  playAudio(currentPlayCard.audioSrc);
+}
+
+// Function manage play mode
+function managePlayMode() {
+  isTrainMode = changeStylesWordCardsDependingOnMode(isTrainMode, switchBtn);
+  changeStylesPlayBtnDependingOnMode(switchBtn, playBtn);
+
+  playBtn.addEventListener('click', () => {
+    changeStylesPlayBtnToRepeatBtn(playBtn);
+    correctPositionPlayBtn(switchBtn, playBtn);
+
+    playCurrentWordAudio();
+  });
 }
 
 // Add listener for burger-menu to open selected category
-burgerInner.addEventListener('click', function(event) {
+burgerInner.addEventListener('click', (event) => {
   const link = event.target.closest('a');
 
   if (!link || link.classList.contains('stat__link')) return;
 
   if (link.classList.contains('burger-menu__main-link')) {
-    location.reload();
+    window.location.reload();
     return;
   }
 
@@ -127,7 +264,7 @@ burgerInner.addEventListener('click', function(event) {
     openCloseBurgerMenu();
   } else {
     if (currentCategory === 'Statistics') {
-      cardsInner.style.marginTop = 10 + 'rem';
+      cardsInner.style.marginTop = `${10}rem`;
     }
 
     if (isRepeatMode) {
@@ -178,7 +315,7 @@ function createStatisticsTable() {
   // Add listener for table header titles to sorting
   const statHeaders = document.querySelector('.stat__headers');
 
-  statHeaders.addEventListener('click', function(event) {
+  statHeaders.addEventListener('click', (event) => {
     const title = event.target.closest('.stat__th');
 
     if (!title) return;
@@ -187,31 +324,33 @@ function createStatisticsTable() {
       case 'Category':
         categorySortDesc = !categorySortDesc;
         wordStatisticsMap = sortByCategory(categorySortDesc, wordStatisticsMap);
-      break;
+        break;
       case 'Word':
         wordSortDesc = !wordSortDesc;
         wordStatisticsMap = sortByWordName(wordSortDesc, wordStatisticsMap);
-      break;
+        break;
       case 'Translation':
         translationSortDesc = !translationSortDesc;
         wordStatisticsMap = sortByTranslation(translationSortDesc, wordStatisticsMap);
-      break;
+        break;
       case 'Clicks':
         trainCountSortDesc = !trainCountSortDesc;
         wordStatisticsMap = sortByTrainCount(trainCountSortDesc, wordStatisticsMap);
-      break;
+        break;
       case 'Correct':
         playCountSortDesc = !playCountSortDesc;
         wordStatisticsMap = sortByPlayCount(playCountSortDesc, wordStatisticsMap);
-      break;
+        break;
       case 'Wrong':
         errorCountSortDesc = !errorCountSortDesc;
         wordStatisticsMap = sortByErrorCount(errorCountSortDesc, wordStatisticsMap);
-      break;
+        break;
       case '% Correct':
         percentSortDesc = !percentSortDesc;
         wordStatisticsMap = sortByPercent(percentSortDesc, wordStatisticsMap);
-      break;
+        break;
+      default:
+        break;
     }
 
     for (let i = 1; i < statTable.rows.length;) {
@@ -221,8 +360,10 @@ function createStatisticsTable() {
   });
 }
 
-// Global variable for the collection of words to repeat
-let wordCollectionForRepeat = [];
+// Function find card by word name
+function findCardByWordName(name) {
+  return Array.from(wordCollection.values()).flat().find((item) => item.word === name);
+}
 
 // Add listener for statistics link to open statistics page
 statPageLink.addEventListener('click', () => {
@@ -237,7 +378,7 @@ statPageLink.addEventListener('click', () => {
     getStatisticsInfoFromStorage();
     // Delete cards inner
     cardsInner.replaceChildren();
-    cardsInner.style.marginTop = 3 + 'rem';
+    cardsInner.style.marginTop = `${3}rem`;
     // Create & add statiscs buttons and table
     createStatisticsBtns(cardsInner);
     createStatisticsTable();
@@ -251,15 +392,15 @@ statPageLink.addEventListener('click', () => {
       const sortedPercentMap = filterZeroAndHundredAndPercentSort(wordStatisticsMap);
       // Pick the first eight word & add to array
       let countWords = 0;
-      for (let obj of sortedPercentMap.values()) {
+      for (const obj of sortedPercentMap.values()) {
         if (countWords < 8) {
-          let cardForRepeat = findCardByWordName(obj.name);
+          const cardForRepeat = findCardByWordName(obj.name);
           wordCollectionForRepeat.push(cardForRepeat);
           countWords++;
         }
       }
       // If there is something to repeat, then add cards to page
-      if (wordCollectionForRepeat.length != 0) {
+      if (wordCollectionForRepeat.length !== 0) {
         const headerSwitch = document.querySelector('.header__switch');
         headerSwitch.style.opacity = 0;
         headerSwitch.style.zIndex = -1;
@@ -280,7 +421,7 @@ statPageLink.addEventListener('click', () => {
       } else {
         cardsInner.replaceChildren();
         cardsInner.style.flexDirection = 'column';
-        cardsInner.style.marginTop = 10 + 'rem';
+        cardsInner.style.marginTop = `${10}rem`;
 
         const headerSwitch = document.querySelector('.header__switch');
         headerSwitch.style.opacity = 0;
@@ -294,7 +435,7 @@ statPageLink.addEventListener('click', () => {
         playAudio('audio/success.mp3');
 
         setTimeout(() => {
-          location.reload();
+          window.location.reload();
         }, 3000);
       }
     });
@@ -306,10 +447,10 @@ statPageLink.addEventListener('click', () => {
       sessionStorage.clear();
       wordCollectionForRepeat = [];
       wordStatisticsMap = new Map();
-      for (let entry of wordCollection) {
-        for(let card of entry[1]) {
+      for (const entry of wordCollection) {
+        for (const card of entry[1]) {
           const wordStatistics = new WordStatistics(card.word, entry[0], card.translation);
-          wordStatisticsMap.set(card.word + '_' + entry[0], wordStatistics);
+          wordStatisticsMap.set(`${card.word}_${entry[0]}`, wordStatistics);
         }
       }
       // Redraw table with default values
@@ -323,69 +464,6 @@ statPageLink.addEventListener('click', () => {
   }
 });
 
-// Handler for listener's cardsInner in repeat mode
-function handlerRepeatWords(event) {
-  const cardFront = event.target.closest('.card__front');
-  const cardWord = event.target.closest('.card__word');
-  const rotateBtn = event.target.closest('.card__rotate-btn');
-
-  if (!cardFront || rotateBtn || !isTrainMode || !isRepeatMode) return;
-
-  if (cardWord) {
-    wordCollectionForRepeat.forEach((item) => {
-      if(item.word === cardWord.dataset.name) {
-        playAudio(item.audioSrc);
-      }
-    });
-  }
-}
-
-// Function find card by word name
-function findCardByWordName(name) {
-  return Array.from(wordCollection.values()).flat().find(item => item.word === name);
-}
-
-// ----- Categories -----
-
-// Set categories name & image source
-const categoriesInfo = [];
-
-for (let i = 0; i < cards.length - 1; i++) {
-  const categoriesObj = {};
-  categoriesObj.title = categoriesName[i];
-  categoriesObj.srcImg = cards[i + 1][0].image;
-  categoriesObj.altText = categoriesName[i].toLowerCase();
-
-  categoriesInfo.push(categoriesObj);
-}
-
-// Add categories cards to page
-const cardsInner = document.querySelector('.cards');
-
-categoriesInfo.forEach((item) => {
-  const cardCategories = new Card('cardCategories', 'card');
-  const cardCategoriesSrc = item.srcImg;
-  const cardCategoriesAlt = item.altText;
-  const cardCategoriesTitle = item.title;
-
-  cardsInner.append(cardCategories.createCard(cardCategoriesSrc, cardCategoriesAlt, 'card__img', cardCategoriesTitle, 'card__title'));
-});
-
-// ----- Words -----
-
-// Function add word cards
-function addWordCards(key) {
-  wordCollection.get(key).forEach((item) => {
-    const wordCard = new CardWord('cardWord', 'card__word');
-    const cardWordSrc = item.image;
-    const cardWordAlt = item.word;
-    const cardWordFrontTitle = item.word;
-    const cardWordBackTitle = item.translation;
-
-    cardsInner.append(wordCard.createCard(cardWordSrc, cardWordAlt, 'card__word-img', 'card__word-title', cardWordFrontTitle, cardWordBackTitle, 'card__front', 'card__back'));
-  });
-}
-
 // Add listener for cards when happened 'click' on categories card
 // Do:
 // Remove categories cards
@@ -394,7 +472,7 @@ function addWordCards(key) {
 // Change active link into burger-menu
 // Add play button
 // Change style depending on mode
-cardsInner.addEventListener('click', function(event) {
+cardsInner.addEventListener('click', (event) => {
   const card = event.target.closest('.card');
 
   if (!card) return;
@@ -403,18 +481,18 @@ cardsInner.addEventListener('click', function(event) {
   addWordCards(card.dataset.name);
   currentCategory = card.dataset.name;
   removeActiveStyleSvg();
-  const currentLink = document.querySelector('[data-category="'+currentCategory+'"]');
+  const currentLink = document.querySelector(`[data-category="${currentCategory}"]`);
   currentLink.classList.add('burger__link_active');
   previousActiveLink = currentLink;
   managePlayMode();
 });
 
 // Add listener for rotate button to rotate word card
-cardsInner.addEventListener('click', function(event) {
+cardsInner.addEventListener('click', (event) => {
   const rotateBtn = event.target.closest('.card__rotate-btn');
   const cardWord = event.target.closest('.card__word');
 
-  if(!rotateBtn) return;
+  if (!rotateBtn) return;
 
   const cardFront = event.target.closest('.card__front');
   const cardBack = cardWord.querySelector('.card__back');
@@ -431,7 +509,7 @@ cardsInner.addEventListener('click', function(event) {
 });
 
 // Add listener for word card to play audio
-cardsInner.addEventListener('click', function(event) {
+cardsInner.addEventListener('click', (event) => {
   const cardFront = event.target.closest('.card__front');
   const cardWord = event.target.closest('.card__word');
   const rotateBtn = event.target.closest('.card__rotate-btn');
@@ -439,34 +517,15 @@ cardsInner.addEventListener('click', function(event) {
   if (!cardFront || rotateBtn || !isTrainMode || isRepeatMode) return;
 
   wordCollection.get(currentCategory).forEach((item) => {
-    if(item.word === cardWord.dataset.name) {
+    if (item.word === cardWord.dataset.name) {
       playAudio(item.audioSrc);
-      wordStatisticsMap.get(item.word + '_' + currentCategory).addTrainCount();
+      wordStatisticsMap.get(`${item.word}_${currentCategory}`).addTrainCount();
     }
   });
 });
 
-// ----- Play mode -----
-
-// Global variable switch button
-const switchBtn = document.querySelector('.switch-btn input');
-
-// Function manage play mode
-function managePlayMode() {
-  isTrainMode = changeStylesWordCardsDependingOnMode(isTrainMode, switchBtn);
-  changeStylesPlayBtnDependingOnMode(switchBtn, playBtn);
-
-  playBtn.addEventListener('click', () => {
-    changeStylesPlayBtnToRepeatBtn(playBtn);
-    correctPositionPlayBtn(switchBtn, playBtn);
-
-    playCurrentWordAudio();
-  });
-}
-
 // Add listener for switch mode to change mode
 switchBtn.addEventListener('change', () => {
-
   if (cardsInner.children[0].classList.contains('card') || currentCategory === 'Statistics') return;
 
   managePlayMode();
@@ -478,32 +537,8 @@ switchBtn.addEventListener('change', () => {
   }
 });
 
-// Global variable play data
-let playListCards = null;
-let currentPlayCardIndex = 0;
-let errorsCount = 0;
-
-// Function for reset global variable's property in play mode
-function resetGlobalPropertyForPlayMode() {
-  playListCards = null;
-  currentPlayCardIndex = 0;
-  errorsCount = 0;
-}
-
-// Function play audio
-function playAudio(src) {
-  const currentAudio = new Audio(src);
-  currentAudio.play();
-}
-
-// Function play current word audio
-function playCurrentWordAudio() {
-  const currentPlayCard = playListCards[currentPlayCardIndex];
-  playAudio(currentPlayCard.audioSrc);
-}
-
 // Function add to page stars & play audio
-function createStars(result, starBox, audio) {
+function createStars(result, starBox) {
   const star = createElem(starBox, 'img', '', 'play__star-img');
 
   if (result === 'correct') {
@@ -521,54 +556,25 @@ function createStars(result, starBox, audio) {
   }
 }
 
-// Function game is over
-function gameIsOver(result) {
-  cardsInner.replaceChildren();
-  cardsInner.style.flexDirection = 'column';
-  playBtn.remove();
-
-  const audio = new Audio;
-  const gameImg = createElem(cardsInner, 'img', '', 'play__img');
-  const gameText = createElem(cardsInner, 'h3', '', 'play__losing-count');
-
-  if (result === 'lose') {
-    playAudio('audio/failure.mp3');
-    gameText.innerHTML = `Number of mistakes: ${errorsCount}`;
-    gameImg.src = 'img/sad.gif';
-    gameImg.alt = 'you lose';
-  } else {
-    playAudio('audio/success.mp3');
-    gameText.innerHTML = `Great job!`;
-    gameImg.src = 'img/win.gif';
-    gameImg.alt = 'you win';
-  }
-
-  resetGlobalPropertyForPlayMode();
-
-  setTimeout(() => {
-    location.reload();
-  }, 4000);
-}
-
 // Add listener for play button to start game
 playBtn.addEventListener('click', () => {
   if (!playListCards) {
     playListCards = wordCollection.get(currentCategory).sort(() => Math.random() - 0.5);
   }
   let currentPlayCard = playListCards[currentPlayCardIndex];
-  let audio = new Audio(currentPlayCard.audioSrc);
+  playAudio(currentPlayCard.audioSrc);
 
   const starBox = createElem(cardsInner, 'div', '', 'play__star-box');
 
-  cardsInner.addEventListener('click', function(event) {
+  cardsInner.addEventListener('click', (event) => {
     const cardWord = event.target.closest('.card__word');
 
     if (!cardWord) return;
 
-    let currentWordStatistics = wordStatisticsMap.get(currentPlayCard.word + '_' + currentCategory);
+    const currentWordStatistics = wordStatisticsMap.get(`${currentPlayCard.word}_${currentCategory}`);
 
     if (cardWord.dataset.name === currentPlayCard.word) {
-      createStars('correct', starBox, audio);
+      createStars('correct', starBox);
       currentWordStatistics.addPlayCount();
       cardWord.style.opacity = 0.5;
       cardWord.style.pointerEvents = 'none';
@@ -588,12 +594,12 @@ playBtn.addEventListener('click', () => {
         }, 1000);
       }
     } else {
-      createStars('incorrect', starBox, audio);
+      createStars('incorrect', starBox);
       currentWordStatistics.addErrorCount();
       errorsCount++;
     }
   });
-}, {once: true});
+}, { once: true });
 
 // Add listener for window to set word's statistics in session storage
 window.addEventListener('beforeunload', () => {

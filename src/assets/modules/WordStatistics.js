@@ -1,5 +1,13 @@
 class WordStatistics {
-  constructor(name, category, translation, trainCount = 0, playCount = 0, errorCount = 0, percent = 0) {
+  constructor(
+    name,
+    category,
+    translation,
+    trainCount = 0,
+    playCount = 0,
+    errorCount = 0,
+    percent = 0,
+  ) {
     this.name = name;
     this.category = category;
     this.translation = translation;
@@ -13,52 +21,52 @@ class WordStatistics {
     return this._name;
   }
 
-  get category() {
-    return this._category;
-  }
-
-  get translation() {
-    return this._translation;
-  }
-
-  get trainCount() {
-    return this._trainCount;
-  }
-
-  get playCount() {
-    return this._playCount;
-  }
-
-  get errorCount() {
-    return this._errorCount;
-  }
-
-  get percent() {
-    return this.calculatePercent();
-  }
-
   set name(value) {
     this._name = value;
+  }
+
+  get category() {
+    return this._category;
   }
 
   set category(value) {
     this._category = value;
   }
 
+  get translation() {
+    return this._translation;
+  }
+
   set translation(value) {
     this._translation = value;
+  }
+
+  get trainCount() {
+    return this._trainCount;
   }
 
   set trainCount(value) {
     this._trainCount = value;
   }
 
+  get playCount() {
+    return this._playCount;
+  }
+
   set playCount(value) {
     this._playCount = value;
   }
 
+  get errorCount() {
+    return this._errorCount;
+  }
+
   set errorCount(value) {
     this._errorCount = value;
+  }
+
+  get percent() {
+    return this.calculatePercent();
   }
 
   set percent(value) {
@@ -78,13 +86,12 @@ class WordStatistics {
   }
 
   calculatePercent() {
-    if (this._playCount != 0) {
-      this._percent = Math.round(this._playCount / (this._playCount + this._errorCount) * 100);
+    if (this._playCount !== 0) {
+      this._percent = Math.round((this._playCount / (this._playCount + this._errorCount)) * 100);
       return this._percent;
     }
     return 0;
   }
-
 }
 
 export default WordStatistics;
